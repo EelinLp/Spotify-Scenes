@@ -199,3 +199,23 @@ body.sc-layout.sc-home-mode[data-scene-media=verity] .sc-native-right .HuKs8FZg6
 body.sc-layout.sc-home-mode:not([data-scene-media=video]) .sc-native-right .zSYdHuZbjxymCqUNFxYz{display:none!important}
 body.sc-layout.sc-home-mode[data-scene-media=off] .sc-native-right :is(.sc-lyrics-full,.sc-lyrics-empty,[data-testid=lyrics-npv-section]){grid-column:1 / -1;width:100%!important;max-width:640px}
 body:not([data-scene-media=verity]) .sc-verity-settings{display:none}
+/* The home media area also works when Spotify has never mounted its NPV panel. */
+body.sc-layout.sc-home-mode.sc-owned-media .Root__top-container.Root__top-container{grid-template:'global-nav global-nav' 48px 'left-sidebar main-view' minmax(0,1fr) 'now-playing-bar now-playing-bar' 88px / var(--sc-nav-width) minmax(0,1fr)!important}
+body.sc-layout.sc-home-mode.sc-owned-media .sc-native-right.sc-native-right{display:none!important}
+body.sc-layout.sc-home-mode.sc-owned-media #sc-home{display:grid!important;grid-template-columns:minmax(160px,.32fr) minmax(0,.68fr);grid-template-rows:auto 1fr;grid-template-areas:'intro media' 'shortcuts media';align-items:start;align-content:start;column-gap:18px;row-gap:24px;min-height:450px;padding-top:28px}
+body.sc-layout.sc-home-mode.sc-owned-media #sc-home :is(.sc-home-center,.sc-shortcuts){width:100%!important;max-width:none!important;min-width:0}
+body.sc-layout.sc-owned-media #sc-home .sc-home-center{grid-area:intro}
+body.sc-layout.sc-owned-media #sc-home .sc-shortcuts{grid-area:shortcuts;align-self:start}
+#sc-home-media{grid-area:media;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:16px;width:100%;min-width:0;height:382px}
+#sc-home-media .sc-lyrics-full{grid-row:1;height:100%;max-height:382px;padding:0 4px!important}
+#sc-home-media .sc-lyrics-full::-webkit-scrollbar{display:none}
+#sc-home-media .sc-lyrics-empty{padding:0 4px}
+.sc-owned-cover{grid-column:1;grid-row:1;display:flex;align-items:center;justify-content:center;width:100%;min-width:0;height:340px;background:transparent}
+.sc-owned-cover img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:18px}
+.sc-cover-placeholder{font:100px sans-serif;color:#ffdf36aa;align-self:center}
+body.sc-owned-media[data-scene-media=off] #sc-home-media{grid-template-columns:minmax(0,1fr)}
+body.sc-owned-media[data-scene-media=off] #sc-home-media :is(.sc-lyrics-full,.sc-lyrics-empty){grid-column:1}
+@media(max-width:850px){body.sc-layout.sc-owned-media #sc-home .sc-home-center h1{font-size:30px!important;letter-spacing:-.8px}#sc-home-media{gap:10px}#sc-home-media .sc-lyrics-full p{font-size:16px!important}}
+@media(max-width:650px){body.sc-layout.sc-home-mode.sc-owned-media #sc-home{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;grid-template-areas:'intro' 'shortcuts' 'media';min-height:0;padding:24px 18px}#sc-home-media{height:300px}#sc-home-media :is(.sc-verity-stage,.sc-owned-cover){height:280px}#sc-home-media .sc-lyrics-full{max-height:300px}}
+
+#sc-home-media .sc-verity-fallback{font-size:clamp(72px,13vw,180px)}

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   if (window.__spotifyScenes) return;
-  window.__spotifyScenes = {version:'0.1.0'};
+  window.__spotifyScenes = {version:'0.1.3'};
   const wallpapers = [['purple','Фиолетовый город'],['blue','Голубое побережье'],['sunset','Закат у храма'],['mono','Чёрно-белый дождь'],['jade','Нефритовый туман'],['rose','Розовая сакура'],['crimson','Алый вечер'],['sand','Песочный рассвет']];
   const fonts = ['Comfortaa','Unbounded','Jura','Russo One','Golos Text','Rubik'];
   const effects = [['snowEffect','Снег'],['sceneSparks','Искры'],['scenePetals','Лепестки'],['sceneRain','Дождь'],['sceneStars','Звёзды'],['sceneFireflies','Светлячки'],['sceneGlints','Блики'],['sceneDust','Пыль']];
@@ -83,13 +83,17 @@
     }
   }
   function mainPlay(){if(Spicetify.Player.data?.item||document.querySelector('[data-testid=now-playing-widget-v2] a'))Spicetify.Player.togglePlay();else void randomLikes();}
-  let mediaOpenRequested=false;
-  function openHomeMedia(attempt=0){
-    if(!settings.layout||!['/','/home'].includes(Spicetify.Platform.History.location.pathname)||mediaOpenRequested)return;
-    if(document.querySelector('.sc-native-right [aria-hidden=false] [data-npv-root]')){mediaOpenRequested=true;return;}
-    const cover=document.querySelector('[data-testid=cover-art-button]');
+  let mediaOpenRequested=false,mediaOpenTimer=0,mediaOpenAttempts=0;
+  function nativeMediaGrid(){
+    const grid=document.querySelector('.sc-native-right :is(.PrgN1zoSiZcVCNSWQwci,.main-nowPlayingView-nowPlayingGrid)');
+    return grid&&!grid.closest('[aria-hidden=true],[hidden]')?grid:null;
+  }
+  function openHomeMedia(){
+    if(!settings.layout||settings.mediaMode!=='video'||!['/','/home'].includes(Spicetify.Platform.History.location.pathname)){mediaOpenRequested=false;clearTimeout(mediaOpenTimer);mediaOpenTimer=0;mediaOpenAttempts=0;return;}
+    if(mediaOpenRequested||nativeMediaGrid())return;
+    const cover=document.querySelector('[data-testid=control-button-npv]:not([aria-pressed=true]),[data-testid=cover-art-button]');
     if(cover){mediaOpenRequested=true;cover.click();}
-    else if(attempt<30)setTimeout(()=>openHomeMedia(attempt+1),500);
+    else if(mediaOpenAttempts<30&&!mediaOpenTimer){mediaOpenAttempts++;mediaOpenTimer=setTimeout(()=>{mediaOpenTimer=0;openHomeMedia()},500);}
   }
   let lyricsUri='',lyricsData=null,lyricsRequest=0,lyricsActive=-1,lyricsManualUntil=0;
   async function loadFullLyrics(){
@@ -160,7 +164,18 @@
     }
   }
   function syncMediaPreview(){
-    const grid=document.querySelector('.sc-native-right .PrgN1zoSiZcVCNSWQwci');syncVerityScene(grid);if(!grid)return;
+    const isHome=settings.layout&&document.body.classList.contains('sc-home-mode')&&home?.isConnected;
+    const nativeGrid=nativeMediaGrid();
+    const owned=Boolean(isHome&&(settings.mediaMode!=='video'||!nativeGrid));
+    document.body.classList.toggle('sc-owned-media',owned);
+    let ownGrid=home?.querySelector('#sc-home-media');
+    if(owned&&!ownGrid){ownGrid=el('div',{id:'sc-home-media',class:'sc-owned-grid'});home.append(ownGrid);}
+    if(!owned){ownGrid?.remove();ownGrid=null;}
+    const grid=isHome?(ownGrid||nativeGrid):null;
+    syncVerityScene(grid);
+    for(const box of document.querySelectorAll('.sc-lyrics-full,.sc-lyrics-empty'))if(box.parentElement!==grid)box.remove();
+    if(!grid)return;
+    syncHomeCover(ownGrid);
     const media=grid.querySelector('.HuKs8FZg6Y75cV9Lh0Kk');media?.classList.toggle('sc-cover-only',!media.querySelector('video')&&Boolean(media.querySelector('img')));
     for(const image of grid.querySelectorAll('.HuKs8FZg6Y75cV9Lh0Kk img')){
       let shell=image.parentElement;while(shell&&!shell.classList.contains('HuKs8FZg6Y75cV9Lh0Kk')){shell.classList.add('sc-cover-shell');shell=shell.parentElement;}
@@ -186,6 +201,20 @@
     const existing=grid.querySelector('.sc-lyrics-empty');
     if(!document.body.classList.contains('sc-home-mode')||grid.querySelector('[data-testid=lyrics-npv-section]')){existing?.remove();return;}
     if(!existing)grid.append(el('section',{class:'sc-lyrics-empty'},el('p',{text:'Для этого трека текст сейчас недоступен.'})));
+  }
+  function syncHomeCover(grid){
+    if(!grid)return;
+    let card=grid.querySelector('.sc-owned-cover');
+    if(settings.mediaMode!=='video'){card?.remove();return;}
+    if(!card){card=el('section',{class:'sc-owned-cover','aria-label':'Обложка текущего трека'});grid.prepend(card);}
+    const item=Spicetify.Player.data?.item,meta=item?.metadata||{};
+    const value=meta.image_xlarge_url||meta.image_large_url||meta.image_url||item?.images?.[0]?.url||document.querySelector('[data-testid=now-playing-widget-v2] img,[data-testid=now-playing-widget] img,.main-nowPlayingWidget-coverArt img')?.src||'';
+    const url=/^spotify:image:[a-f0-9]+$/i.test(value)?'https://i.scdn.co/image/'+value.split(':')[2]:value;
+    const image=card.querySelector('img');
+    if(/^(https?:|data:image\/)/.test(url)){
+      if(image){if(image.getAttribute('src')!==url)image.src=url;}
+      else card.replaceChildren(el('img',{src:url,alt:item?.name||meta.title||'Обложка трека'}));
+    }else if(!card.querySelector('.sc-cover-placeholder'))card.replaceChildren(el('span',{class:'sc-cover-placeholder',text:'♫','aria-label':'Выбери трек'}));
   }
   function markLayout(){
     const root=document.querySelector('.Root__top-container');if(!root)return;
@@ -225,7 +254,7 @@
   function mountHome(){
     syncSearch();
     const path=Spicetify.Platform.History.location.pathname;const target=document.querySelector('.main-home-home')||document.querySelector('.sc-native-main main');
-    if(!settings.layout||!['/','/home'].includes(path)||!target){document.body.classList.remove('sc-home-mode');home?.remove();document.querySelector('#sc-home-wave')?.remove();home=null;syncVerityScene(null);return;}
+    if(!settings.layout||!['/','/home'].includes(path)||!target){document.body.classList.remove('sc-home-mode','sc-owned-media');mediaOpenRequested=false;home?.remove();document.querySelector('#sc-home-wave')?.remove();home=null;syncVerityScene(null);return;}
     document.body.classList.add('sc-home-mode');
     if(!target.querySelector('#sc-home-wave')){
       const wave=el('div',{id:'sc-home-wave','aria-hidden':'true'});
@@ -233,7 +262,7 @@
       target.append(wave);
     }
     const wave=target.querySelector('#sc-home-wave');if(wave?.nextElementSibling)target.append(wave);
-    if(home?.isConnected)return;
+    if(home?.isConnected){openHomeMedia();return;}
     home=el('section',{id:'sc-home','aria-label':'Моя музыка'});
     const shortcuts=el('div',{class:'sc-shortcuts'},button('♡  Любимые треки',()=>navigate('/collection/tracks')),button('♫  Моя коллекция',()=>navigate('/collection')),button('⌕  Найти музыку',()=>navigate('/search')));
     const center=el('div',{class:'sc-home-center'},el('h1',{text:'Моя музыка'}),el('p',{text:'Случайный трек из любимых'}),button('▶',mainPlay,{'aria-label':'Включить музыку',class:'sc-home-play'}));
@@ -322,7 +351,7 @@
     new Spicetify.Topbar.Button('Оформление',icons.settings?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">${icons.settings}</svg>`:'',showSettings,false,true);
     new Spicetify.Menu.Item('Оформление',false,showSettings,'edit').register();
     Spicetify.Platform.History.listen(()=>setTimeout(mountHome,100));
-    const observer=new MutationObserver(()=>{if(!ready){ready=true;requestAnimationFrame(()=>{ready=false;markLayout();mountHome();syncMediaPreview()})}});observer.observe(document.querySelector('#main')||document.body,{subtree:true,childList:true});syncMediaPreview();
+    const observer=new MutationObserver(()=>{if(!ready){ready=true;requestAnimationFrame(()=>{ready=false;markLayout();mountHome();syncMediaPreview()})}});observer.observe(document.querySelector('#main')||document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-hidden','hidden']});syncMediaPreview();
     Object.assign(window.__spotifyScenes,{getSettings:()=>({...settings}),qualityText,pickLiked});
   }
   init();

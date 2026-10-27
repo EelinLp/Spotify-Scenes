@@ -70,7 +70,7 @@ function createVerity3D(host,getOptions){
     if(state.dance!==dance||state.emotion!==emotion){state={dance,emotion};host.dataset.dance=dance;host.dataset.emotion=emotion;}
     let p;if(options.playing||real<boostUntil){p=pose(dance,clock);}else{p=pose('groove',0);p.y=.035*Math.sin(clock*1.5);p.ry=.07*Math.sin(clock*.7);p.rz=.025*Math.sin(clock);p.l[1]=-.23;p.r[1]=-.23;}
     if(options.reducedMotion){p=pose('groove',0);}
-    const rect=host.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,1.5),w=Math.max(1,Math.round(rect.width*ratio)),h=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);const f=1/Math.tan(40*Math.PI/360),near=.1,far=30;gl.uniformMatrix4fv(locations.uProjection,false,new Float32Array([f/(w/h),0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]));}
+    const rect=host.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,1.5),w=Math.max(1,Math.round(rect.width*ratio)),h=Math.max(1,Math.round(rect.height*ratio));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);const f=1/Math.tan(40*Math.PI/360)*Math.min(1,(w/h)/1.25),near=.1,far=30;gl.uniformMatrix4fv(locations.uProjection,false,new Float32Array([f/(w/h),0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]));}
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw([p.x,-1.38,0],[0,0,0],[.9+.08*p.y,.025,.34],[.03,.025,.01,.13]);
     const gold=[1,.79,.10,1],shoe=[.96,.65,.05,1],rot=[p.rx,p.ry,p.rz];
