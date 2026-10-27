@@ -219,3 +219,42 @@ body.sc-owned-media[data-scene-media=off] #sc-home-media :is(.sc-lyrics-full,.sc
 @media(max-width:650px){body.sc-layout.sc-home-mode.sc-owned-media #sc-home{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;grid-template-areas:'intro' 'shortcuts' 'media';min-height:0;padding:24px 18px}#sc-home-media{height:300px}#sc-home-media :is(.sc-verity-stage,.sc-owned-cover){height:280px}#sc-home-media .sc-lyrics-full{max-height:300px}}
 
 #sc-home-media .sc-verity-fallback{font-size:clamp(72px,13vw,180px)}
+/* Keep covers and lyrics in the same home grid in every media mode. */
+.sc-owned-cover{anchor-name:--sc-home-visual}
+body.sc-layout.sc-home-mode.sc-owned-media.sc-native-video-mounted .sc-native-right.sc-native-right{display:contents!important}
+body.sc-layout.sc-home-mode.sc-native-video-mounted .sc-native-right :not(.sc-video-path):not(.sc-native-video-source):not(.sc-native-video-source *){display:none!important}
+body.sc-layout.sc-home-mode.sc-native-video-mounted .sc-video-path.sc-video-path{display:contents!important}
+body.sc-layout.sc-home-mode.sc-native-video-mounted .sc-native-video-source.sc-native-video-source{display:flex!important;position:absolute!important;position-anchor:--sc-home-visual;top:anchor(top)!important;left:anchor(left)!important;right:auto!important;bottom:auto!important;width:anchor-size(width)!important;height:anchor-size(height)!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;translate:none!important;transform:none!important;align-items:center;justify-content:center;overflow:hidden!important;z-index:2!important;pointer-events:none}
+body.sc-layout.sc-home-mode.sc-native-video-mounted .sc-native-video-source :is(div,video){display:flex!important;position:relative!important;inset:auto!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;transform:none!important;align-items:center!important;justify-content:center!important;aspect-ratio:auto!important}
+body.sc-layout.sc-home-mode.sc-native-video-mounted .sc-native-video-source video{object-fit:contain!important;object-position:center!important;border-radius:18px!important}
+body.sc-layout.sc-home-mode.sc-native-video-mounted .sc-native-video-source :is(img,button,svg,[role=button]){display:none!important}
+.sc-native-video-active .sc-owned-cover>*{visibility:hidden}
+body.sc-layout.sc-home-mode .sc-native-video-source video.sc-trim-bars{clip-path:inset(var(--sc-trim-0,0%) var(--sc-trim-1,0%) var(--sc-trim-2,0%) var(--sc-trim-3,0%) round 18px)!important}
+/* Home is a single scene. Search and library pages retain their own scrolling. */
+body.sc-layout.sc-home-mode .sc-home-scroll{overflow-y:hidden!important;overscroll-behavior-y:none!important;scrollbar-width:none!important;background:transparent!important;background-image:none!important}
+body.sc-layout.sc-home-mode .sc-home-scroll::-webkit-scrollbar{display:none!important}
+body.sc-layout.sc-home-mode .sc-home-tail{display:none!important}
+body.sc-layout.sc-home-mode.sc-owned-media #sc-home{min-height:var(--sc-home-height,450px)!important;height:var(--sc-home-height,450px)!important;padding-top:20px;padding-bottom:20px;row-gap:16px}
+body.sc-layout.sc-home-mode #sc-home-media{height:var(--sc-home-media-height,382px)!important}
+body.sc-layout.sc-home-mode #sc-home-media :is(.sc-owned-cover,.sc-verity-stage){height:min(340px,var(--sc-home-media-height,382px))!important}
+body.sc-layout.sc-home-mode #sc-home-media .sc-lyrics-full{max-height:var(--sc-home-media-height,382px)!important}
+body.sc-layout.sc-home-mode #sc-home-wave{height:20px;margin:4px 28px 8px}
+body.sc-layout.sc-home-short #sc-home .sc-home-center h1{font-size:30px!important;margin-bottom:6px}
+body.sc-layout.sc-home-short #sc-home .sc-home-center p{font-size:12px;margin:6px 0}
+body.sc-layout.sc-home-short #sc-home .sc-home-play{width:44px;height:44px;margin-top:10px}
+body.sc-layout.sc-home-short #sc-home .sc-shortcuts{gap:6px}
+body.sc-layout.sc-home-short #sc-home .sc-shortcuts button{font-size:11px;padding:7px 9px}
+/* Native filter actions, with scene surfaces instead of opaque Spotify bars. */
+body.sc-layout.sc-home-mode :is(.sc-home-filter-shell,.sc-home-filter-shell::before,.sc-home-filter-shell::after,.sc-home-filter-shell>div:not(:has(button))){background:transparent!important;background-image:none!important;box-shadow:none!important;--background-base:transparent!important}
+body.sc-layout.sc-home-mode .sc-home-filter-shell{position:static!important;top:auto!important;transform:none!important;min-height:0!important}
+body.sc-layout.sc-home-mode .sc-home-filter-shell .xCEkyVpabf3oVGmFQVej{display:none!important}
+body.sc-layout.sc-home-mode .sc-home-filters{display:flex!important;align-items:center;gap:8px;padding:6px 8px!important;margin:0 12px 10px!important;min-height:40px;box-sizing:border-box;border-radius:16px;background:rgb(255 255 255 / .045)!important;border:1px solid #ffffff12;backdrop-filter:blur(12px);overflow-x:auto;scrollbar-width:none}
+body.sc-layout.sc-home-mode .sc-home-filters :is(button,[role=tab]){border:1px solid #ffffff18!important;background:rgb(255 255 255 / .07)!important;background-image:none!important;border-radius:12px!important;color:#eeeeeebf!important;min-height:28px;height:auto!important;padding:5px 12px!important;white-space:nowrap;font-size:12px!important;box-shadow:none!important}
+body.sc-layout.sc-home-mode .sc-home-filters :is(button,[role=tab]) *{background:transparent!important;background-image:none!important;color:inherit!important}
+body.sc-layout.sc-home-mode .sc-home-filters :is([aria-checked=true],[aria-pressed=true],[aria-selected=true]){background:rgb(255 223 54 / .16)!important;border-color:#ffdf3655!important;color:#ffdf36!important}
+body.sc-layout.sc-home-mode .sc-home-filters button:hover{background:rgb(255 255 255 / .12)!important}
+@media(max-width:650px){body.sc-layout.sc-home-mode.sc-owned-media #sc-home{grid-template-columns:minmax(130px,.36fr) minmax(0,.64fr);grid-template-rows:auto 1fr;grid-template-areas:'intro media' 'shortcuts media';padding:16px 12px;gap:10px}body.sc-layout.sc-owned-media #sc-home .sc-home-center h1{font-size:24px!important}#sc-home-media{gap:6px}#sc-home-media .sc-lyrics-full p{font-size:14px!important}body.sc-layout.sc-home-short #sc-home .sc-shortcuts button{font-size:10px;padding:5px 7px}}
+body.sc-layout.sc-home-mode.sc-native-video-mounted :is(.sc-native-right.sc-native-right,.sc-video-path.sc-video-path){opacity:1!important;visibility:visible!important;transform:none!important;clip-path:none!important;mask-image:none!important}
+
+body.sc-layout.sc-home-mode.sc-native-video-mounted:not(.sc-native-video-active) .sc-native-video-source.sc-native-video-source{opacity:0!important}
+body.sc-layout.sc-home-mode.sc-native-video-active .sc-native-video-source.sc-native-video-source{opacity:1!important}

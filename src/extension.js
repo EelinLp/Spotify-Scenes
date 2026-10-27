@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   if (window.__spotifyScenes) return;
-  window.__spotifyScenes = {version:'0.1.3'};
+  window.__spotifyScenes = {version:'0.1.4'};
   const wallpapers = [['purple','Фиолетовый город'],['blue','Голубое побережье'],['sunset','Закат у храма'],['mono','Чёрно-белый дождь'],['jade','Нефритовый туман'],['rose','Розовая сакура'],['crimson','Алый вечер'],['sand','Песочный рассвет']];
   const fonts = ['Comfortaa','Unbounded','Jura','Russo One','Golos Text','Rubik'];
   const effects = [['snowEffect','Снег'],['sceneSparks','Искры'],['scenePetals','Лепестки'],['sceneRain','Дождь'],['sceneStars','Звёзды'],['sceneFireflies','Светлячки'],['sceneGlints','Блики'],['sceneDust','Пыль']];
@@ -85,8 +85,23 @@
   function mainPlay(){if(Spicetify.Player.data?.item||document.querySelector('[data-testid=now-playing-widget-v2] a'))Spicetify.Player.togglePlay();else void randomLikes();}
   let mediaOpenRequested=false,mediaOpenTimer=0,mediaOpenAttempts=0;
   function nativeMediaGrid(){
-    const grid=document.querySelector('.sc-native-right :is(.PrgN1zoSiZcVCNSWQwci,.main-nowPlayingView-nowPlayingGrid)');
+    const grid=document.querySelector('.sc-native-right .PrgN1zoSiZcVCNSWQwci')||document.querySelector('.sc-native-right .main-nowPlayingView-nowPlayingGrid');
     return grid&&!grid.closest('[aria-hidden=true],[hidden]')?grid:null;
+  }
+  let nativeVideoSource=null;
+  function syncNativeVideo(card){
+    const enabled=settings.mediaMode==='video'&&card&&CSS.supports('anchor-name: --sc-home-visual');
+    const video=enabled?[...document.querySelectorAll('.sc-native-right video')].find(v=>!v.closest('[aria-hidden=true],[hidden]')):null;
+    // Keep Spotify's video slot in the layout while it loads: display:none would
+    // prevent its IntersectionObserver from mounting or starting the video.
+    const source=video?(video.closest('.HuKs8FZg6Y75cV9Lh0Kk')||video.parentElement):enabled?nativeMediaGrid()?.querySelector('.HuKs8FZg6Y75cV9Lh0Kk'):null;
+    if(source!==nativeVideoSource){
+      for(const n of document.querySelectorAll('.sc-video-path,.sc-native-video-source'))n.classList.remove('sc-video-path','sc-native-video-source');
+      nativeVideoSource=source;
+      if(source){source.classList.add('sc-native-video-source');for(let n=source.parentElement;n&&!n.classList.contains('sc-native-right');n=n.parentElement)n.classList.add('sc-video-path');}
+    }
+    document.body.classList.toggle('sc-native-video-mounted',Boolean(source));
+    document.body.classList.toggle('sc-native-video-active',Boolean(source&&video&&video.videoWidth>0&&video.videoHeight>0&&video.readyState>=2));
   }
   function openHomeMedia(){
     if(!settings.layout||settings.mediaMode!=='video'||!['/','/home'].includes(Spicetify.Platform.History.location.pathname)){mediaOpenRequested=false;clearTimeout(mediaOpenTimer);mediaOpenTimer=0;mediaOpenAttempts=0;return;}
@@ -101,6 +116,7 @@
     if(uri===lyricsUri)return;
     lyricsUri=uri;lyricsData=null;lyricsActive=-1;lyricsManualUntil=0;const request=++lyricsRequest;
     document.querySelector('.sc-lyrics-full')?.remove();
+    syncMediaPreview();
     if(!/^spotify:track:[a-zA-Z0-9]+$/.test(uri))return;
     try{
       const result=await Spicetify.CosmosAsync.get('https://spclient.wg.spotify.com/color-lyrics/v2/track/'+uri.split(':')[2]+'?format=json&vocalRemoval=false');
@@ -147,7 +163,7 @@
   }
   function trimVideoBorders(){
     if(!settings.layout||!document.body.classList.contains('sc-home-mode')||document.hidden)return;
-    for(const video of document.querySelectorAll('.sc-native-right .HuKs8FZg6Y75cV9Lh0Kk video')){
+    for(const video of document.querySelectorAll('.sc-native-video-source video')){
       if(video.readyState<2||!video.videoWidth||!video.videoHeight)continue;
       const source=video.currentSrc||video.srcObject;let state=videoBorders.get(video);
       if(!state||state.source!==source){state={source,canvas:document.createElement('canvas'),candidate:null,count:0,blocked:false};videoBorders.set(video,state);video.classList.remove('sc-trim-bars');}
@@ -165,24 +181,17 @@
   }
   function syncMediaPreview(){
     const isHome=settings.layout&&document.body.classList.contains('sc-home-mode')&&home?.isConnected;
-    const nativeGrid=nativeMediaGrid();
-    const owned=Boolean(isHome&&(settings.mediaMode!=='video'||!nativeGrid));
+    const owned=Boolean(isHome);
     document.body.classList.toggle('sc-owned-media',owned);
     let ownGrid=home?.querySelector('#sc-home-media');
     if(owned&&!ownGrid){ownGrid=el('div',{id:'sc-home-media',class:'sc-owned-grid'});home.append(ownGrid);}
     if(!owned){ownGrid?.remove();ownGrid=null;}
-    const grid=isHome?(ownGrid||nativeGrid):null;
+    const grid=isHome?ownGrid:null;
     syncVerityScene(grid);
     for(const box of document.querySelectorAll('.sc-lyrics-full,.sc-lyrics-empty'))if(box.parentElement!==grid)box.remove();
-    if(!grid)return;
+    if(!grid){syncNativeVideo(null);return;}
     syncHomeCover(ownGrid);
-    const media=grid.querySelector('.HuKs8FZg6Y75cV9Lh0Kk');media?.classList.toggle('sc-cover-only',!media.querySelector('video')&&Boolean(media.querySelector('img')));
-    for(const image of grid.querySelectorAll('.HuKs8FZg6Y75cV9Lh0Kk img')){
-      let shell=image.parentElement;while(shell&&!shell.classList.contains('HuKs8FZg6Y75cV9Lh0Kk')){shell.classList.add('sc-cover-shell');shell=shell.parentElement;}
-    }
-    for(const video of grid.querySelectorAll('.HuKs8FZg6Y75cV9Lh0Kk video')){
-      let shell=video.parentElement;while(shell&&!shell.classList.contains('HuKs8FZg6Y75cV9Lh0Kk')){shell.classList.add('sc-video-shell');shell=shell.parentElement;}
-    }
+    syncNativeVideo(ownGrid?.querySelector('.sc-owned-cover'));
     if(lyricsData&&document.body.classList.contains('sc-home-mode')){
       if(!grid.querySelector('.sc-lyrics-full')){
         const box=el('section',{class:'sc-lyrics-full',dir:lyricsData.rtl?'rtl':'auto','aria-label':'Текст песни'});
@@ -208,7 +217,7 @@
     if(settings.mediaMode!=='video'){card?.remove();return;}
     if(!card){card=el('section',{class:'sc-owned-cover','aria-label':'Обложка текущего трека'});grid.prepend(card);}
     const item=Spicetify.Player.data?.item,meta=item?.metadata||{};
-    const value=meta.image_xlarge_url||meta.image_large_url||meta.image_url||item?.images?.[0]?.url||document.querySelector('[data-testid=now-playing-widget-v2] img,[data-testid=now-playing-widget] img,.main-nowPlayingWidget-coverArt img')?.src||'';
+    const value=meta.image_xlarge_url||meta.image_large_url||meta.image_url||item?.images?.[0]?.url||item?.images?.[0]?.uri||document.querySelector('[data-testid=now-playing-widget-v2] img,[data-testid=now-playing-widget] img,.main-nowPlayingWidget-coverArt img,.sc-native-right img')?.src||'';
     const url=/^spotify:image:[a-f0-9]+$/i.test(value)?'https://i.scdn.co/image/'+value.split(':')[2]:value;
     const image=card.querySelector('img');
     if(/^(https?:|data:image\/)/.test(url)){
@@ -218,7 +227,7 @@
   }
   function markLayout(){
     const root=document.querySelector('.Root__top-container');if(!root)return;
-    for(const n of root.children){const area=getComputedStyle(n).gridArea;
+    for(const n of root.children){const area=getComputedStyle(n).gridArea.split('/')[0].trim();
       if(area==='left-sidebar')n.classList.add('sc-native-sidebar');
       else if(area==='main-view')n.classList.add('sc-native-main');
       else if(area==='now-playing-bar')n.classList.add('sc-native-player');
@@ -251,10 +260,36 @@
   const icons={home:'<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3z"/>',search:'<circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 6 6"/>',library:'<path d="M4 3v18M10 3v18M16 3l5 18"/>',heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="m9 2-1 4-4 1-2 4 3 3v4l4 3 4-2 4 1 3-4-1-4 2-4-4-3-4 1z"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
   function icon(kind){const n=el('span',{'aria-hidden':'true',class:'sc-icon'});n.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${icons[kind]}</svg>`;return n;}
   function makeNav(){nav=el('nav',{id:'sc-nav','aria-label':'Музыка'});for(const [kind,label,path]of [['home','Главная','/'],['search','Поиск','/search'],['heart','Любимые треки','/collection/tracks']]){const b=button('',()=>navigate(path),{'aria-label':label,title:label});b.append(icon(kind),el('span',{class:'sc-nav-label',text:label}));nav.append(b)}nav.append(el('div',{class:'sc-spacer'}));const b=button('',showSettings,{'aria-label':'Настройки оформления',title:'Настройки оформления'});b.append(icon('settings'),el('span',{class:'sc-nav-label',text:'Настройки'}));nav.append(b);const collapse=button('',()=>save({sidebarCollapsed:!settings.sidebarCollapsed}),{'data-collapse':'',title:'Размер меню'});collapse.append(icon('menu'));nav.append(collapse);document.body.append(nav);}
+  let homeViewport=null,homeResize=null;
+  function syncHomeSurface(){
+    if(!home?.isConnected||!document.body.classList.contains('sc-home-mode'))return;
+    const target=home.parentElement,main=home.closest('.sc-native-main');if(!main)return;
+    for(let n=target;n&&n!==main.parentElement;n=n.parentElement){n.classList.add('sc-home-scroll');if(n.scrollTop)n.scrollTop=0;}
+    const label=n=>(n.getAttribute('aria-label')||n.textContent||'').trim();
+    const filters=/^(вс[её]|музыка|подкасты|аудиокниги|all|music|podcasts|audiobooks)$/i;
+    const chip=[...main.querySelectorAll('button')].find(n=>!n.closest('#sc-home')&&filters.test(label(n)));
+    let row=main.querySelector('.skZ4mdJF4e0hK0sAJpuj,[data-testid=home-page-filter-chips],[data-testid=filter-chips]');
+    if(!row&&chip){for(let n=chip.parentElement;n&&n!==main;n=n.parentElement){if([...n.querySelectorAll('button')].filter(b=>filters.test(label(b))).length>=2){row=n;break;}}}
+    if(row){row.classList.add('sc-home-filters');for(let n=row.parentElement;n&&n!==main&&!n.contains(home)&&!n.querySelector('a[href]');n=n.parentElement)n.classList.add('sc-home-filter-shell');}
+    let pins=target.querySelector('[data-testid=shortcut-grid],.main-home-shortcuts');
+    if(!pins){const link=target.querySelector('a[href="/collection/tracks"]');for(let n=link?.parentElement;n&&n!==target&&!n.contains(home);n=n.parentElement){const count=n.querySelectorAll('a[href]').length;if(count>=2&&count<=12)pins=n;else if(count>12)break;}}
+    if(pins){
+      pins.classList.add('sc-home-pins');
+      for(let n=pins;n&&n!==target;n=n.parentElement)for(let sibling=n.nextElementSibling;sibling;sibling=sibling.nextElementSibling)if(!sibling.contains(home)&&!sibling.contains(row)&&sibling.id!=='sc-home-wave')sibling.classList.add('sc-home-tail');
+    }
+    const available=main.getBoundingClientRect().height||innerHeight-136;
+    const reserve=(pins?.getBoundingClientRect().height||160)+(row?.getBoundingClientRect().height||44)+36;
+    const height=Math.max(220,Math.min(450,available-reserve));
+    document.documentElement.style.setProperty('--sc-home-height',height+'px');
+    document.documentElement.style.setProperty('--sc-home-media-height',Math.max(160,height-48)+'px');
+    document.body.classList.toggle('sc-home-short',height<360);
+    updateLyricsVisibility();
+    if(homeViewport!==main){homeResize?.disconnect();homeViewport=main;homeResize=new ResizeObserver(()=>syncHomeSurface());homeResize.observe(main);}
+  }
   function mountHome(){
     syncSearch();
     const path=Spicetify.Platform.History.location.pathname;const target=document.querySelector('.main-home-home')||document.querySelector('.sc-native-main main');
-    if(!settings.layout||!['/','/home'].includes(path)||!target){document.body.classList.remove('sc-home-mode','sc-owned-media');mediaOpenRequested=false;home?.remove();document.querySelector('#sc-home-wave')?.remove();home=null;syncVerityScene(null);return;}
+    if(!settings.layout||!['/','/home'].includes(path)||!target){document.body.classList.remove('sc-home-mode','sc-owned-media','sc-home-short');mediaOpenRequested=false;home?.remove();document.querySelector('#sc-home-wave')?.remove();home=null;homeResize?.disconnect();homeViewport=null;syncVerityScene(null);syncNativeVideo(null);return;}
     document.body.classList.add('sc-home-mode');
     if(!target.querySelector('#sc-home-wave')){
       const wave=el('div',{id:'sc-home-wave','aria-hidden':'true'});
@@ -262,11 +297,12 @@
       target.append(wave);
     }
     const wave=target.querySelector('#sc-home-wave');if(wave?.nextElementSibling)target.append(wave);
-    if(home?.isConnected){openHomeMedia();return;}
+    if(home?.isConnected){syncHomeSurface();openHomeMedia();return;}
     home=el('section',{id:'sc-home','aria-label':'Моя музыка'});
     const shortcuts=el('div',{class:'sc-shortcuts'},button('♡  Любимые треки',()=>navigate('/collection/tracks')),button('♫  Моя коллекция',()=>navigate('/collection')),button('⌕  Найти музыку',()=>navigate('/search')));
     const center=el('div',{class:'sc-home-center'},el('h1',{text:'Моя музыка'}),el('p',{text:'Случайный трек из любимых'}),button('▶',mainPlay,{'aria-label':'Включить музыку',class:'sc-home-play'}));
     home.append(shortcuts,center);target.prepend(home);
+    syncHomeSurface();
     openHomeMedia();
   }
   let randomBusy=false;
@@ -344,6 +380,7 @@
     try{await openStore()}catch{Spicetify.showNotification('Хранилище своего фона недоступно',true)}
     markLayout();makeNav();apply();installEffects();installVerity();
     window.addEventListener('resize',updateLyricsVisibility);
+    for(const event of ['loadeddata','loadedmetadata','emptied','error'])document.addEventListener(event,e=>{if(e.target instanceof HTMLVideoElement)syncMediaPreview()},true);
     document.addEventListener('keydown',event=>{if(event.key==='Escape'){searchOpen=false;syncSearch();}});
     document.addEventListener('focusout',event=>{if(event.target.matches?.('input[data-top-bar-search]'))setTimeout(()=>{if(!document.querySelector('[role=search]')?.contains(document.activeElement)){searchOpen=false;syncSearch();}},150)});
     Spicetify.Player.addEventListener('songchange',()=>{void loadFullLyrics()});void loadFullLyrics();setInterval(()=>{void loadFullLyrics();updateFullLyrics()},500);
