@@ -1,0 +1,10 @@
+const fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');
+const target=path.join(root,'spotify-scenes.js');
+const old=fs.readFileSync(target,'utf8');
+const assets=old.match(/^const ASSETS=(.*);$/m)?.[1];
+if(!assets)throw Error('Bundled assets were not found in spotify-scenes.js');
+JSON.parse(assets);
+const read=p=>fs.readFileSync(path.join(__dirname,p),'utf8');
+const next=`(() => {\nconst ASSETS=${assets};\nconst STYLE=${JSON.stringify(read('style.css'))};\n${read('effects.js')}\n${read('verity-3d.js')}\n${read('extension.js')}\n})();`.replaceAll('window.modPlayerSettings','window.__spotifyScenes.settingsBridge').replaceAll('full-mod-settings','spotify-scenes-settings');
+fs.writeFileSync(target,next);console.log('Built spotify-scenes.js');

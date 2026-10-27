@@ -1,0 +1,32 @@
+[
+  {
+    "id": "russoone",
+    "source": "https://github.com/google/fonts/blob/main/ofl/russoone/RussoOne-Regular.ttf",
+    "license": "https://github.com/google/fonts/blob/main/ofl/russoone/OFL.txt"
+  },
+  {
+    "id": "golostext",
+    "source": "https://github.com/google/fonts/blob/main/ofl/golostext/GolosText[wght].ttf",
+    "license": "https://github.com/google/fonts/blob/main/ofl/golostext/OFL.txt"
+  },
+  {
+    "id": "comfortaa",
+    "source": "https://github.com/google/fonts/blob/main/ofl/comfortaa/Comfortaa[wght].ttf",
+    "license": "https://github.com/google/fonts/blob/main/ofl/comfortaa/OFL.txt"
+  },
+  {
+    "id": "jura",
+    "source": "https://github.com/google/fonts/blob/main/ofl/jura/Jura[wght].ttf",
+    "license": "https://github.com/google/fonts/blob/main/ofl/jura/OFL.txt"
+  },
+  {
+    "id": "rubik",
+    "source": "https://github.com/google/fonts/blob/main/ofl/rubik/Rubik[wght].ttf",
+    "license": "https://github.com/google/fonts/blob/main/ofl/rubik/OFL.txt"
+  },
+  {
+    "id": "unbounded",
+    "source": "https://github.com/google/fonts/blob/main/ofl/unbounded/Unbounded[wght].ttf",
+    "license": "https://github.com/google/fonts/blob/main/ofl/unbounded/OFL.txt"
+  }
+]
