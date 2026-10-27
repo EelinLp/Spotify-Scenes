@@ -11,7 +11,7 @@ using System.Windows.Forms;
 using Microsoft.Win32;
 
 static class Program {
- public const string Version="0.1.4";
+ public const string Version="0.1.5";
  public static readonly string Root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SpotifyScenes");
  public static readonly string Target=Path.Combine(Root,"Mod");
  public static readonly string Spotify=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"Spotify","Spotify.exe");
