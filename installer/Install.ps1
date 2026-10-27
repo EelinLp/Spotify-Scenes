@@ -14,6 +14,8 @@ function Spice([string[]]$Arguments) {
     if ($result.Output) { Write-Host $result.Output.TrimEnd() }
 }
 if (!(Test-Path (Join-Path $spotify 'Spotify.exe'))) { throw 'Install the desktop version of Spotify from spotify.com and sign in first.' }
+if (!(Test-Path -LiteralPath $apps)) { throw 'Spotify Apps directory was not found. Open Spotify once before installing the mod.' }
+if (!(Test-Path -LiteralPath (Join-Path $spotify 'prefs'))) { throw 'Spotify prefs file was not found. Open Spotify, sign in, then retry the installer.' }
 if (!(Test-Path (Join-Path $package 'runtime\spicetify.exe'))) { throw 'Extract the entire ZIP before starting Install.cmd.' }
 New-Item -ItemType Directory -Force $runtime | Out-Null
 if (!(Test-Path (Join-Path $backup 'ready.json'))) {
@@ -26,11 +28,15 @@ $checkpoint = Join-Path $env:LOCALAPPDATA ('SpotifyScenes\Checkpoints\' + [guid]
 New-Item -ItemType Directory -Force $checkpoint | Out-Null
 Copy-Item -LiteralPath $apps -Destination (Join-Path $checkpoint 'Apps') -Recurse
 if (Test-Path $config) { Copy-Item -LiteralPath $config -Destination (Join-Path $checkpoint 'config-xpui.ini') }
+$appsTouched = $false
 try {
     $useBundled = !(Test-Path $spice)
-    if (!$useBundled) { $useBundled = ([version](Invoke-ScenesNative -Executable $spice -Arguments @('-v')).Output.Trim() -le [version]'2.46.4') }
+    if (!$useBundled) {
+        try { $useBundled = ([version](Invoke-ScenesNative -Executable $spice -Arguments @('-v') -LogPath (Join-Path $checkpoint 'install.log')).Output.Trim() -le [version]'2.46.4') }
+        catch { Write-Host 'Installed Spicetify could not be used. Using the bundled version.'; $useBundled = $true }
+    }
     if ($useBundled) { Copy-Item (Join-Path $package 'runtime\*') $runtime -Recurse -Force }
-    Spice -Arguments @('-q','config','spotify_path',$spotify)
+    Spice -Arguments @('config','spotify_path',$spotify)
     $data = (Invoke-ScenesNative -Executable $spice -Arguments @('path','userdata') -LogPath (Join-Path $checkpoint 'install.log')).Output.Trim()
     if (!(Test-Path -LiteralPath $data)) { throw 'Spicetify config directory was not found.' }
     $theme = Join-Path $data 'Themes\SpotifyScenes'
@@ -38,18 +44,21 @@ try {
     New-Item -ItemType Directory -Force $theme,$extensions | Out-Null
     Copy-Item (Join-Path $package 'theme\*') $theme -Force
     Copy-Item (Join-Path $package 'spotify-scenes.js') $extensions -Force
-    Spice -Arguments @('-q','config','current_theme','SpotifyScenes','color_scheme','Scenes','inject_css','1','replace_colors','1','inject_theme_js','0','extensions','spotify-scenes.js')
+    Spice -Arguments @('config','current_theme','SpotifyScenes','color_scheme','Scenes','inject_css','1','replace_colors','1','inject_theme_js','0','extensions','spotify-scenes.js')
     Get-Process Spotify -ErrorAction SilentlyContinue | Stop-Process
-    if (Test-Path (Join-Path $apps 'xpui')) { Spice -Arguments @('apply') }
-    else { Spice -Arguments @('backup','apply') }
+    $appsTouched = $true
+    if (Test-Path (Join-Path $apps 'xpui')) { Spice -Arguments @('-n','apply') }
+    else { Spice -Arguments @('-n','backup','apply') }
     if (!$NoLaunch) { Start-Process (Join-Path $spotify 'Spotify.exe') -WindowStyle Normal }
     Write-Host 'Installed. Open Spotify. Appearance settings: gear button on the left.'
 } catch {
-    Get-Process Spotify -ErrorAction SilentlyContinue | Stop-Process
-    # Keep the failed app tree for inspection and restore the exact saved tree.
-    if (([IO.Path]::GetFullPath($apps)) -ne (Join-Path ([IO.Path]::GetFullPath($env:APPDATA)) 'Spotify\Apps')) { throw 'Unexpected Spotify path. Automatic rollback stopped.' }
-    Move-Item -LiteralPath $apps -Destination (Join-Path $checkpoint 'FailedApps')
-    Copy-Item -LiteralPath (Join-Path $checkpoint 'Apps') -Destination $apps -Recurse
+    if ($appsTouched) {
+        Get-Process Spotify -ErrorAction SilentlyContinue | Stop-Process
+        # Keep the failed app tree for inspection and restore the exact saved tree.
+        if (([IO.Path]::GetFullPath($apps)) -ne (Join-Path ([IO.Path]::GetFullPath($env:APPDATA)) 'Spotify\Apps')) { throw 'Unexpected Spotify path. Automatic rollback stopped.' }
+        Move-Item -LiteralPath $apps -Destination (Join-Path $checkpoint 'FailedApps')
+        Copy-Item -LiteralPath (Join-Path $checkpoint 'Apps') -Destination $apps -Recurse
+    }
     if (Test-Path (Join-Path $checkpoint 'config-xpui.ini')) { Copy-Item (Join-Path $checkpoint 'config-xpui.ini') $config -Force }
     elseif (Test-Path -LiteralPath $config) { Remove-Item -LiteralPath $config }
     throw

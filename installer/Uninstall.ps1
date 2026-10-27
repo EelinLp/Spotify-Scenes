@@ -21,7 +21,7 @@ if ($meta.version -eq (Get-Item $exe).VersionInfo.ProductVersion) {
     if ($meta.hadConfig) { Copy-Item (Join-Path $backup 'config-xpui.ini') $config -Force }
 } else {
     # An old SPA snapshot must never be put into an updated Spotify client.
-    $result = Invoke-ScenesNative -Executable $spice -Arguments @('-q','restore') -LogPath (Join-Path $backup 'uninstall.log')
+    $result = Invoke-ScenesNative -Executable $spice -Arguments @('-n','restore') -LogPath (Join-Path $backup 'uninstall.log')
     if ($result.Output) { Write-Host $result.Output.TrimEnd() }
     if ($meta.hadConfig) { Copy-Item (Join-Path $backup 'config-xpui.ini') $config -Force }
 }
