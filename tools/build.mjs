@@ -12,7 +12,10 @@ fs.writeFileSync(path.join(output,'spotify-scenes.js'),bundle);fs.cpSync(path.jo
 fs.copyFileSync(path.join(root,'tools/portable-build.cjs'),path.join(output,'source/build.cjs'));
 for(const name of ['Install.cmd','Install.ps1','Uninstall.cmd','Uninstall.ps1','NativeProcess.ps1'])fs.copyFileSync(path.join(root,'installer',name),path.join(output,name));
 fs.cpSync(path.join(root,'vendor/spicetify'),path.join(output,'runtime'),{recursive:true});fs.cpSync(path.join(root,'licenses'),path.join(output,'licenses'),{recursive:true});
-for(const name of ['LICENSE','README.md','THIRD_PARTY.md'])fs.copyFileSync(path.join(root,name),path.join(output,name));
+for(const name of ['README.md','THIRD_PARTY.md'])fs.copyFileSync(path.join(root,name),path.join(output,name));
+// Keep upstream license notices in distributions even when the repository uses
+// the notices under licenses/ instead of a top-level LICENSE file.
+fs.copyFileSync(fs.existsSync(path.join(root,'LICENSE'))?path.join(root,'LICENSE'):path.join(root,'licenses/LICENSE'),path.join(output,'LICENSE'));
 fs.mkdirSync(path.join(output,'theme'),{recursive:true});fs.copyFileSync(path.join(root,'installer/color.ini'),path.join(output,'theme/color.ini'));fs.writeFileSync(path.join(output,'theme/user.css'),'/* Styling is managed by spotify-scenes.js. */\n');
 fs.writeFileSync(path.join(output,'ЗАПУСК.txt'),'Запусти Install.cmd и открой Spotify. Настройки — шестерёнка слева.\nВидео, Верити 3D или скрытый видеоряд — раздел «Видеоряд и Верити».\nУдаление: Uninstall.cmd.\n');
 console.log(JSON.stringify({version,output,defaultFont:defaults.font,defaultMedia:defaults.mediaMode,bytes:Buffer.byteLength(bundle)}));
