@@ -10,7 +10,7 @@ const defaults=JSON.parse(read('src/defaults.json'));let extension=read('src/ext
 const bundle=`(() => {\nconst ASSETS=${JSON.stringify(assets)};\nconst STYLE=${JSON.stringify(read('src/style.css'))};\n${read('src/effects.js')}\n${read('src/verity-3d.js')}\n${extension}\n})();`.replaceAll('window.modPlayerSettings','window.__spotifyScenes.settingsBridge').replaceAll('full-mod-settings','spotify-scenes-settings');
 fs.writeFileSync(path.join(output,'spotify-scenes.js'),bundle);fs.cpSync(path.join(root,'src'),path.join(output,'source'),{recursive:true});fs.copyFileSync(path.join(root,'assets/mogity.png'),path.join(output,'source/mogity.png'));
 fs.copyFileSync(path.join(root,'tools/portable-build.cjs'),path.join(output,'source/build.cjs'));
-for(const name of ['Install.cmd','Install.ps1','Uninstall.cmd','Uninstall.ps1','NativeProcess.ps1'])fs.copyFileSync(path.join(root,'installer',name),path.join(output,name));
+for(const name of ['Install.cmd','Install.ps1','Uninstall.cmd','Uninstall.ps1','NativeProcess.ps1','SpotifyUpdates.ps1'])fs.copyFileSync(path.join(root,'installer',name),path.join(output,name));
 fs.cpSync(path.join(root,'vendor/spicetify'),path.join(output,'runtime'),{recursive:true});fs.cpSync(path.join(root,'licenses'),path.join(output,'licenses'),{recursive:true});
 for(const name of ['README.md','THIRD_PARTY.md'])fs.copyFileSync(path.join(root,name),path.join(output,name));
 // Keep upstream license notices in distributions even when the repository uses

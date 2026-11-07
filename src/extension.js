@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   if (window.__spotifyScenes) return;
-  window.__spotifyScenes = {version:'0.1.5'};
+  window.__spotifyScenes = {version:'0.1.6'};
   const wallpapers = [['purple','Фиолетовый город'],['blue','Голубое побережье'],['sunset','Закат у храма'],['mono','Чёрно-белый дождь'],['jade','Нефритовый туман'],['rose','Розовая сакура'],['crimson','Алый вечер'],['sand','Песочный рассвет']];
   const fonts = ['Comfortaa','Unbounded','Jura','Russo One','Golos Text','Rubik'];
   const effects = [['snowEffect','Снег'],['sceneSparks','Искры'],['scenePetals','Лепестки'],['sceneRain','Дождь'],['sceneStars','Звёзды'],['sceneFireflies','Светлячки'],['sceneGlints','Блики'],['sceneDust','Пыль']];

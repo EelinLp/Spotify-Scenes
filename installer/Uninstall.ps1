@@ -11,7 +11,8 @@ if ($meta.spotify -ne $spotify) { throw 'Spotify path has changed. Automatic rol
 $exe=Join-Path $spotify 'Spotify.exe'
 $spice=Join-Path $env:LOCALAPPDATA 'spicetify\spicetify.exe'
 Get-Process Spotify -ErrorAction SilentlyContinue | Stop-Process
-$config=Join-Path $env:APPDATA 'spicetify\config-xpui.ini'
+$spiceUserData = if ($env:SPICETIFY_CONFIG) { $env:SPICETIFY_CONFIG } else { Join-Path $env:APPDATA 'spicetify' }
+$config=Join-Path $spiceUserData 'config-xpui.ini'
 if ($meta.version -eq (Get-Item $exe).VersionInfo.ProductVersion) {
     $apps=Join-Path $spotify 'Apps'
     if (([IO.Path]::GetFullPath($apps)) -ne (Join-Path ([IO.Path]::GetFullPath($env:APPDATA)) 'Spotify\Apps')) { throw 'Unexpected Spotify path.' }
@@ -31,5 +32,6 @@ if (!$meta.hadConfig -and (Test-Path -LiteralPath $config)) {
     Copy-Item -LiteralPath $config -Destination $savedConfig
     Remove-Item -LiteralPath $config
 }
+& (Join-Path $PSScriptRoot 'SpotifyUpdates.ps1') -Action Unblock
 if (!$NoLaunch) { Start-Process $exe -WindowStyle Normal }
 Write-Host 'Appearance removed. Your saved appearance settings are retained.'

@@ -6,7 +6,9 @@ $package = $PSScriptRoot
 $runtime = Join-Path $env:LOCALAPPDATA 'spicetify'
 $spice = Join-Path $runtime 'spicetify.exe'
 $spotify = Join-Path $env:APPDATA 'Spotify'
-$config = Join-Path $env:APPDATA 'spicetify\config-xpui.ini'
+$spiceUserData = if ($env:SPICETIFY_CONFIG) { $env:SPICETIFY_CONFIG } else { Join-Path $env:APPDATA 'spicetify' }
+$spiceState = [IO.Path]::GetFullPath($(if ($env:SPICETIFY_STATE) { $env:SPICETIFY_STATE } else { Join-Path $env:APPDATA 'spicetify' }))
+$config = Join-Path $spiceUserData 'config-xpui.ini'
 $backup = Join-Path $env:LOCALAPPDATA 'SpotifyScenes\BeforeInstall'
 $apps = Join-Path $spotify 'Apps'
 function Spice([string[]]$Arguments) {
@@ -29,6 +31,7 @@ New-Item -ItemType Directory -Force $checkpoint | Out-Null
 Copy-Item -LiteralPath $apps -Destination (Join-Path $checkpoint 'Apps') -Recurse
 if (Test-Path $config) { Copy-Item -LiteralPath $config -Destination (Join-Path $checkpoint 'config-xpui.ini') }
 $appsTouched = $false
+$backupTouched = $false
 try {
     $useBundled = !(Test-Path $spice)
     if (!$useBundled) {
@@ -46,11 +49,20 @@ try {
     Copy-Item (Join-Path $package 'spotify-scenes.js') $extensions -Force
     Spice -Arguments @('config','current_theme','SpotifyScenes','color_scheme','Scenes','inject_css','1','replace_colors','1','inject_theme_js','0','extensions','spotify-scenes.js')
     Get-Process Spotify -ErrorAction SilentlyContinue | Stop-Process
+    $refreshBackup = Test-Path -LiteralPath (Join-Path $apps 'xpui.spa') -PathType Leaf
+    if ($refreshBackup) {
+        foreach ($name in @('Backup','Extracted')) {
+            $folder = Join-Path $spiceState $name
+            if (Test-Path -LiteralPath $folder) { Copy-Item -LiteralPath $folder -Destination $checkpoint -Recurse }
+        }
+        $backupTouched = $true
+    }
     $appsTouched = $true
-    if (Test-Path (Join-Path $apps 'xpui')) { Spice -Arguments @('-n','apply') }
-    else { Spice -Arguments @('-n','backup','apply') }
-    if (!$NoLaunch) { Start-Process (Join-Path $spotify 'Spotify.exe') -WindowStyle Normal }
-    Write-Host 'Installed. Open Spotify. Appearance settings: gear button on the left.'
+    if ($refreshBackup) {
+        # An update can leave an old extracted xpui beside the new stock archive.
+        Spice -Arguments @('-n','backup','apply')
+    } else { Spice -Arguments @('-n','apply') }
+    & (Join-Path $package 'SpotifyUpdates.ps1') -Action Block
 } catch {
     if ($appsTouched) {
         Get-Process Spotify -ErrorAction SilentlyContinue | Stop-Process
@@ -59,8 +71,23 @@ try {
         Move-Item -LiteralPath $apps -Destination (Join-Path $checkpoint 'FailedApps')
         Copy-Item -LiteralPath (Join-Path $checkpoint 'Apps') -Destination $apps -Recurse
     }
+    if ($backupTouched) {
+        foreach ($name in @('Backup','Extracted')) {
+            $folder = [IO.Path]::GetFullPath((Join-Path $spiceState $name))
+            if ([IO.Path]::GetDirectoryName($folder) -ne $spiceState.TrimEnd('\')) {
+                throw 'Unexpected Spicetify state path. Automatic rollback stopped.'
+            }
+            if (Test-Path -LiteralPath $folder) {
+                Rename-Item -LiteralPath $folder -NewName ($name + '.failed-' + [guid]::NewGuid().ToString('N'))
+            }
+            $saved = Join-Path $checkpoint $name
+            if (Test-Path -LiteralPath $saved) { Copy-Item -LiteralPath $saved -Destination $spiceState -Recurse }
+        }
+    }
     if (Test-Path (Join-Path $checkpoint 'config-xpui.ini')) { Copy-Item (Join-Path $checkpoint 'config-xpui.ini') $config -Force }
     elseif (Test-Path -LiteralPath $config) { Remove-Item -LiteralPath $config }
     throw
 }
+if (!$NoLaunch) { Start-Process (Join-Path $spotify 'Spotify.exe') -WindowStyle Normal }
+Write-Host 'Installed. Open Spotify. Appearance settings: gear button on the left.'
 
