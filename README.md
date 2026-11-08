@@ -4,10 +4,12 @@
 
 [Скачать последнюю версию](https://github.com/EelinLp/Spotify-Scenes/releases/latest)
 
+Кнопка «Моя волна» в левом меню запускает подборку по любимым трекам. Она смешивает несколько радио Spotify, использует дослушанные рекомендации при следующем подборе и старается избегать недавних повторов. Нажми кнопку ещё раз, чтобы остановить волну.
+
 ## Установка
 
 1. Установи Spotify Desktop с [официального сайта](https://www.spotify.com/download/windows/) и войди в аккаунт.
-2. Скачай `Spotify-Scenes-Setup-0.1.6.exe` из Releases.
+2. Скачай `Spotify-Scenes-Setup-0.1.7.exe` из Releases.
 3. Запусти установщик и нажми «Установить». Затем открой Spotify.
 
 Установщик отключает автообновления Spotify Desktop для текущего пользователя. При удалении мода обновления включаются обратно. Чтобы включить их отдельно, запусти `powershell -ExecutionPolicy Bypass -File SpotifyUpdates.ps1 -Action Unblock` из папки мода.
@@ -59,7 +61,7 @@ node tools/build.mjs
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-setup.ps1
 ```
 
-Файлы появятся в `dist/`. Компилятор C# берётся из системного .NET Framework. Дополнительные npm-пакеты не нужны. Проверка содержимого установщика без установки: `Spotify-Scenes-Setup-0.1.6.exe --verify-package`.
+Файлы появятся в `dist/`. Компилятор C# берётся из системного .NET Framework. Дополнительные npm-пакеты не нужны. Проверка содержимого установщика без установки: `Spotify-Scenes-Setup-0.1.7.exe --verify-package`.
 
 ## Скачивание музыки
 

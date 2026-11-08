@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   if (window.__spotifyScenes) return;
-  window.__spotifyScenes = {version:'0.1.6'};
+  window.__spotifyScenes = {version:'0.1.7'};
   const wallpapers = [['purple','Фиолетовый город'],['blue','Голубое побережье'],['sunset','Закат у храма'],['mono','Чёрно-белый дождь'],['jade','Нефритовый туман'],['rose','Розовая сакура'],['crimson','Алый вечер'],['sand','Песочный рассвет']];
   const fonts = ['Comfortaa','Unbounded','Jura','Russo One','Golos Text','Rubik'];
   const effects = [['snowEffect','Снег'],['sceneSparks','Искры'],['scenePetals','Лепестки'],['sceneRain','Дождь'],['sceneStars','Звёзды'],['sceneFireflies','Светлячки'],['sceneGlints','Блики'],['sceneDust','Пыль']];
@@ -104,7 +104,7 @@
     document.body.classList.toggle('sc-native-video-active',Boolean(source&&video&&video.videoWidth>0&&video.videoHeight>0&&video.readyState>=2));
   }
   function openHomeMedia(){
-    if(!settings.layout||settings.mediaMode!=='video'||!['/','/home'].includes(Spicetify.Platform.History.location.pathname)){mediaOpenRequested=false;clearTimeout(mediaOpenTimer);mediaOpenTimer=0;mediaOpenAttempts=0;return;}
+    if(!settings.layout||panel?.open||settings.mediaMode!=='video'||!['/','/home'].includes(Spicetify.Platform.History.location.pathname)){mediaOpenRequested=false;clearTimeout(mediaOpenTimer);mediaOpenTimer=0;mediaOpenAttempts=0;return;}
     if(mediaOpenRequested||nativeMediaGrid())return;
     const cover=document.querySelector('[data-testid=control-button-npv]:not([aria-pressed=true]),[data-testid=cover-art-button]');
     if(cover){mediaOpenRequested=true;cover.click();}
@@ -180,7 +180,7 @@
     }
   }
   function syncMediaPreview(){
-    const isHome=settings.layout&&document.body.classList.contains('sc-home-mode')&&home?.isConnected;
+    const isHome=settings.layout&&!panel?.open&&document.body.classList.contains('sc-home-mode')&&home?.isConnected;
     const owned=Boolean(isHome);
     document.body.classList.toggle('sc-owned-media',owned);
     let ownGrid=home?.querySelector('#sc-home-media');
@@ -238,10 +238,12 @@
   let searchOpen=false;
   function syncSearch(){
     const path=Spicetify.Platform.History.location.pathname;
+    const preferences=/^\/(preferences|settings)(\/|$)/.test(path);
     document.body.classList.toggle('sc-search-mode',settings.layout&&(searchOpen||path.startsWith('/search')));
     document.body.classList.toggle('sc-search-empty',settings.layout&&/^\/search\/?$/.test(path));
-    document.body.classList.toggle('sc-content-only',settings.layout&&(path.startsWith('/search')||path==='/collection/tracks'||/^\/(playlist|station|radio|album|artist)\//.test(path)));
+    document.body.classList.toggle('sc-content-only',settings.layout&&(preferences||path.startsWith('/search')||path==='/collection/tracks'||/^\/(playlist|station|radio|album|artist)\//.test(path)));
     document.body.classList.toggle('sc-liked-mode',settings.layout&&path==='/collection/tracks');
+    document.body.classList.toggle('sc-settings-page',preferences);
   }
   function openSearch(){searchOpen=true;Spicetify.Platform.History.push('/search');mountHome();requestAnimationFrame(()=>{const input=document.querySelector('input[data-top-bar-search]');input?.focus();input?.select();});}
   function navigate(path){if(path==='/search'){openSearch();return;}searchOpen=false;if(path==='/collection'){syncSearch();void showLibrary();return;}Spicetify.Platform.History.push(path);mountHome();}
@@ -259,7 +261,15 @@
   }
   const icons={home:'<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3z"/>',search:'<circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 6 6"/>',library:'<path d="M4 3v18M10 3v18M16 3l5 18"/>',heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="m9 2-1 4-4 1-2 4 3 3v4l4 3 4-2 4 1 3-4-1-4 2-4-4-3-4 1z"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
   function icon(kind){const n=el('span',{'aria-hidden':'true',class:'sc-icon'});n.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${icons[kind]}</svg>`;return n;}
-  function makeNav(){nav=el('nav',{id:'sc-nav','aria-label':'Музыка'});for(const [kind,label,path]of [['home','Главная','/'],['search','Поиск','/search'],['heart','Любимые треки','/collection/tracks']]){const b=button('',()=>navigate(path),{'aria-label':label,title:label});b.append(icon(kind),el('span',{class:'sc-nav-label',text:label}));nav.append(b)}nav.append(el('div',{class:'sc-spacer'}));const b=button('',showSettings,{'aria-label':'Настройки оформления',title:'Настройки оформления'});b.append(icon('settings'),el('span',{class:'sc-nav-label',text:'Настройки'}));nav.append(b);const collapse=button('',()=>save({sidebarCollapsed:!settings.sidebarCollapsed}),{'data-collapse':'',title:'Размер меню'});collapse.append(icon('menu'));nav.append(collapse);document.body.append(nav);}
+  let wave, waveButton;
+  function makeWaveButton() {
+    icons.wave='<path d="M2 12h3l2-6 4 12 3-9 2 3h6"/>';
+    const control = button('',()=>void wave.toggle().catch(error=>Spicetify.showNotification(error.message || 'Не удалось запустить «Мою волну».', true)),
+      {class:'sc-wave-button','aria-label':'Моя волна','aria-pressed':'false',title:'Моя волна'});
+    control.append(icon('wave'),el('span',{class:'sc-nav-label',text:'Моя волна'}));
+    return control;
+  }
+  function makeNav(){nav=el('nav',{id:'sc-nav','aria-label':'Музыка'});for(const [kind,label,path]of [['home','Главная','/'],['search','Поиск','/search'],['heart','Любимые треки','/collection/tracks']]){const b=button('',()=>navigate(path),{'aria-label':label,title:label});b.append(icon(kind),el('span',{class:'sc-nav-label',text:label}));nav.append(b)}waveButton=makeWaveButton();nav.append(waveButton,el('div',{class:'sc-spacer'}));const b=button('',showSettings,{'aria-label':'Настройки оформления',title:'Настройки оформления'});b.append(icon('settings'),el('span',{class:'sc-nav-label',text:'Настройки'}));nav.append(b);const collapse=button('',()=>save({sidebarCollapsed:!settings.sidebarCollapsed}),{'data-collapse':'',title:'Размер меню'});collapse.append(icon('menu'));nav.append(collapse);document.body.append(nav);}
   function syncHomeSurface(){
     if(!home?.isConnected||!document.body.classList.contains('sc-home-mode'))return;
     const target=home.parentElement,main=home.closest('.sc-native-main');if(!main)return;
@@ -360,7 +370,10 @@
     const effectGrid=el('div',{class:'sc-effect-grid'});for(const[key,name]of effects){const row=check(key,name);row.querySelector('input').dataset.effect=key;effectGrid.append(row)}body.append(effectGrid,field('Плотность',range('sceneDensity',10,100,1,'%')),field('Скорость',range('sceneSpeed',.3,2,.1,'×')));
     body.append(el('h3',{text:'Расположение'}),check('layout','Расположение в духе Яндекс Музыки'),check('sidebarCollapsed','Компактное меню слева'));
     body.append(el('h3',{text:'Качество аудио'}),el('p',{class:'sc-note',text:qualityText()}));
-    panel.append(header,body);document.body.append(panel);panel.addEventListener('click',e=>{if(e.target===panel){const r=panel.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)panel.close()}});updateSelections();panel.showModal();
+    panel.append(header,body);document.body.append(panel);panel.addEventListener('click',e=>{if(e.target===panel){const r=panel.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)panel.close()}});
+    panel.addEventListener('close',()=>{openHomeMedia();syncMediaPreview();});
+    updateSelections();panel.showModal();
+    openHomeMedia();syncMediaPreview();
   }
   async function init(){
     if(!window.Spicetify?.Platform?.History||!Spicetify.Topbar||!Spicetify.Player||!document.body){setTimeout(init,300);return}
@@ -375,11 +388,17 @@
     background=el('div',{id:'sc-background','aria-hidden':'true'});document.body.prepend(background);document.body.prepend(el('div',{id:'sc-shade','aria-hidden':'true'}));
     try{await openStore()}catch{Spicetify.showNotification('Хранилище своего фона недоступно',true)}
     markLayout();makeNav();apply();installEffects();installVerity();
+    wave=createScenesWave(pickLiked,state=>{
+      waveButton.dataset.state=state;
+      waveButton.setAttribute('aria-pressed',String(state==='playing'));
+      waveButton.setAttribute('aria-busy',String(state==='loading'));
+      waveButton.title=state==='loading'?'Отменить подбор':state==='playing'?'Остановить «Мою волну»':'Моя волна';
+    });
     window.addEventListener('resize',updateLyricsVisibility);
     for(const event of ['loadeddata','loadedmetadata','emptied','error'])document.addEventListener(event,e=>{if(e.target instanceof HTMLVideoElement)syncMediaPreview()},true);
     document.addEventListener('keydown',event=>{if(event.key==='Escape'){searchOpen=false;syncSearch();}});
     document.addEventListener('focusout',event=>{if(event.target.matches?.('input[data-top-bar-search]'))setTimeout(()=>{if(!document.querySelector('[role=search]')?.contains(document.activeElement)){searchOpen=false;syncSearch();}},150)});
-    Spicetify.Player.addEventListener('songchange',()=>{void loadFullLyrics()});void loadFullLyrics();setInterval(()=>{void loadFullLyrics();updateFullLyrics()},500);
+    Spicetify.Player.addEventListener('songchange',()=>{void loadFullLyrics();wave.tick()});void loadFullLyrics();setInterval(()=>{void loadFullLyrics();updateFullLyrics();wave.tick()},500);
     setInterval(trimVideoBorders,1600);
     new Spicetify.Topbar.Button('Оформление',icons.settings?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">${icons.settings}</svg>`:'',showSettings,false,true);
     new Spicetify.Menu.Item('Оформление',false,showSettings,'edit').register();

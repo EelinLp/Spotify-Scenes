@@ -19,5 +19,73 @@ await p.evaluate(async()=>{const c=document.createElement('canvas');c.width=320;
 await p.waitForFunction(()=>document.body.classList.contains('sc-native-video-active'));const video=await p.evaluate(()=>{const r=n=>{const x=document.querySelector(n).getBoundingClientRect();return{left:x.left,top:x.top,width:x.width,height:x.height}};return{source:r('.sc-native-video-source'),slot:r('.sc-owned-cover'),video:r('#fixture-video'),lyrics:getComputedStyle(document.querySelector('.sc-lyrics-full')).display,opacity:getComputedStyle(document.querySelector('.fixture-collapsed')).opacity}});assert.ok(video.source.width>50&&video.video.width>50);for(const k of ['left','top','width','height'])assert.ok(Math.abs(video.source[k]-video.slot[k])<2,JSON.stringify(video));assert.equal(video.opacity,'1');assert.ok(await p.locator('.sc-lyrics-full').isVisible());results.video=video;await p.screenshot({path:path.join(out,'home-video-playing.png')});
 await mode(p,'verity');assert.equal(await p.locator('.sc-verity-stage').count(),1);assert.ok(!(await p.locator('body').evaluate(n=>n.classList.contains('sc-native-video-active'))));await mode(p,'off');assert.equal(await p.locator('.sc-owned-cover').count(),0);assert.ok(await p.locator('.sc-lyrics-full').isVisible());
 for(const path of ['/artist/test','/search','/collection/tracks','/station/test']){await p.evaluate(path=>Spicetify.Platform.History.push(path),path);await p.waitForTimeout(150);assert.equal(await p.locator('#sc-home-media').count(),0);assert.equal(await p.locator('.sc-lyrics-full').count(),0);assert.notEqual(await p.locator('.fixture-scroll').evaluate(n=>getComputedStyle(n).overflowY),'hidden');}
-await p.evaluate(()=>Spicetify.Platform.History.push('/'));await mode(p,'video');await p.waitForSelector('.sc-lyrics-full');assert.equal(await p.locator('.sc-lyrics-full').count(),1);assert.deepEqual(errors,[]);results.errors=errors;fs.writeFileSync(path.join(out,'home-media-filters-verification.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results,null,2));
+await p.evaluate(()=>Spicetify.Platform.History.push('/'));await mode(p,'video');await p.waitForSelector('.sc-lyrics-full');assert.equal(await p.locator('.sc-lyrics-full').count(),1);
+await p.locator('#sc-nav [aria-label="Настройки оформления"]').click();
+await p.locator('#sc-settings[open]').waitFor();
+assert.equal(await p.locator('#sc-home-media').count(),0);
+assert.equal(await p.locator('.native-player').isVisible(),false);
+await p.keyboard.press('Escape');
+await p.waitForSelector('#sc-home-media .sc-lyrics-full');
+assert.ok(await p.locator('.native-player').isVisible());
+await p.evaluate(()=>{
+  Spicetify.Platform.History.push('/artist/test');
+  document.querySelector('.fixture-scroll').insertAdjacentHTML('beforeend',
+    '<style>.GECIboaMmkIqHDKwQ3vR{background:#121212}.GfTKUTxvt__lBLQKmG9m::after{content:"";background:linear-gradient(red,blue)}</style>'+
+    '<section class="GECIboaMmkIqHDKwQ3vR"><div class="GfTKUTxvt__lBLQKmG9m"></div><img alt="artist artwork" src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2730%27 height=%2730%27/%3E"></section>');
+});
+assert.equal(await p.locator('.GECIboaMmkIqHDKwQ3vR').evaluate(node=>getComputedStyle(node).backgroundColor),'rgba(0, 0, 0, 0)');
+assert.equal(await p.locator('.GfTKUTxvt__lBLQKmG9m').evaluate(node=>getComputedStyle(node,'::after').backgroundImage),'none');
+assert.ok(await p.getByAltText('artist artwork').isVisible());
+await p.evaluate(()=>Spicetify.Platform.History.push('/preferences'));
+await p.waitForFunction(()=>document.body.classList.contains('sc-settings-page'));
+assert.equal(await p.locator('.native-player').isVisible(),false);
+await p.evaluate(()=>{
+  Spicetify.Platform.History.push('/');
+  const player=Spicetify.Player;
+  const queue={queued:[],nextUp:[]};
+  const test=window.waveTest={queue,played:[],seeds:[],pauses:0,progress:0};
+  player.getProgress=()=>test.progress;
+  player.origin={
+    getQueue:()=>queue,
+    play:async(context)=>{
+      const tracks=context.pages[0].items;
+      test.played=tracks;
+      player.data={context,item:tracks[0],duration:100000,isPaused:false};
+      queue.nextUp=tracks.slice(1);
+    },
+    addToQueue:async items=>{for(const item of items)queue.queued.push({...item,uid:'wave-'+item.uri});},
+    removeFromQueue:async items=>{queue.queued=queue.queued.filter(item=>!items.some(removed=>removed.uid===item.uid));},
+    pause:async()=>{test.pauses++;player.data.isPaused=true;}
+  };
+  Spicetify.Platform.LibraryAPI={getTracks:async()=>({totalLength:1,items:[{uri:'spotify:track:seed'}]})};
+  Spicetify.Platform.PlaylistAPI={getContents:async uri=>({items:Array.from({length:24},(_,i)=>({uri:'spotify:track:'+uri.split(':').at(-1)+i}))})};
+  const get=Spicetify.CosmosAsync.get;
+  Spicetify.CosmosAsync.get=async url=>{
+    if(!url.includes('/seed_to_playlist/'))return get(url);
+    const seed=url.split('/seed_to_playlist/')[1].split('?')[0];
+    test.seeds.push(seed);
+    return {mediaItems:[{uri:'spotify:playlist:'+seed.split(':').at(-1)}]};
+  };
+});
+const waveButton=p.getByRole('button',{name:'Моя волна',exact:true});
+await waveButton.click();
+await p.waitForFunction(()=>document.querySelector('.sc-wave-button').getAttribute('aria-pressed')==='true');
+assert.equal(await p.evaluate(()=>waveTest.played.length),12);
+assert.equal(await p.evaluate(()=>new Set(waveTest.played.map(track=>track.uri)).size),12);
+await p.evaluate(()=>{waveTest.progress=72000;});
+await p.waitForTimeout(650);
+await p.evaluate(()=>{
+  Spicetify.Player.data.item=waveTest.played.at(-1);
+  waveTest.queue.nextUp=[];
+  waveTest.queue.queued=[{uri:'spotify:track:manual',uid:'manual-1'}];
+  waveTest.progress=0;
+});
+await p.waitForFunction(()=>waveTest.queue.queued.length===2);
+assert.equal(await p.evaluate(()=>waveTest.seeds.includes(waveTest.played[0].uri)),true);
+await waveButton.click();
+await p.waitForFunction(()=>waveTest.queue.queued.length===1);
+assert.deepEqual(await p.evaluate(()=>waveTest.queue.queued.map(item=>item.uid)),['manual-1']);
+assert.equal(await p.evaluate(()=>waveTest.pauses),1);
+results.settingsAndWave=true;
+assert.deepEqual(errors,[]);results.errors=errors;fs.writeFileSync(path.join(out,'home-media-filters-verification.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results,null,2));
 }finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -240,3 +240,26 @@ body.sc-layout.sc-home-mode.sc-native-video-mounted :is(.sc-native-right.sc-nati
 
 body.sc-layout.sc-home-mode.sc-native-video-mounted:not(.sc-native-video-active) .sc-native-video-source.sc-native-video-source{opacity:0!important}
 body.sc-layout.sc-home-mode.sc-native-video-active .sc-native-video-source.sc-native-video-source{opacity:1!important}
+
+/* Spotify paints page gradients on both containers and pseudo-elements. */
+body.sc-background :is(.sc-native-main,.Root__main-view) :is(
+  [data-testid="overscroll-background"],[data-testid="background-image"],
+  .main-topBar-background,.main-topBar-overlay,.main-topBar-mixingBackground,
+  .main-entityHeader-backgroundColor,.main-entityHeader-background,.main-actionBarBackground-background,
+  .GfTKUTxvt__lBLQKmG9m,.hbNOZbHD3bPL3OcHQWNn,.GECIboaMmkIqHDKwQ3vR,
+  .gmu7_RBMtFXx72GDaf4Q,.zG8zineD2JBh92fRQzHu,.IfBZ5VdI_2nwDMl4H6Yh,
+  .uP1rcUSIWCFaOZaoH0ZG,.r8bczAWCEgb9_L0iyIcc,
+  .WLAk85ZDVJOveF8S8x2S,.tPfod6L1Bt5VzxPtQjsx,.playlist-playlist-playlistContent
+){
+  background:transparent!important;
+  &::before,&::after{background:transparent!important}
+}
+
+#sc-settings::backdrop{background:#141916}
+body:has(#sc-settings[open]) :is(#main,#sc-nav){visibility:hidden}
+body.sc-settings-page :is(.sc-native-player,.Root__now-playing-bar,.sc-native-right,.Root__right-sidebar,.Root__lyrics-cinema){display:none!important}
+body.sc-layout.sc-settings-page .Root__top-container.Root__top-container{
+  grid-template:'global-nav global-nav' 48px 'left-sidebar main-view' minmax(0,1fr) / var(--sc-nav-width) minmax(0,1fr)!important;
+}
+body.sc-layout #sc-nav .sc-wave-button{color:#ffdf36;background:#ffdf3617}
+body.sc-layout #sc-nav .sc-wave-button:is(:hover,[aria-pressed=true],[aria-busy=true]){background:#ffdf3630}
